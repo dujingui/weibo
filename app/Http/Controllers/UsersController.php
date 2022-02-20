@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
-use Auth;
 use Mail;
+use Auth;
 
 class UsersController extends Controller
 {
@@ -25,12 +25,6 @@ class UsersController extends Controller
         ]);
     }
 
-    public function index()
-    {
-        $users = User::paginate(6);
-        return view('users.index', compact('users'));
-    }
-
     public function create()
     {
         return view('users.create');
@@ -39,8 +33,8 @@ class UsersController extends Controller
     public function show(User $user)
     {
         $statuses = $user->statuses()
-                           ->orderBy('created_at', 'desc')
-                           ->paginate(10);
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
         return view('users.show', compact('user', 'statuses'));
     }
 
@@ -63,15 +57,43 @@ class UsersController extends Controller
         return redirect('/');
     }
 
+    // protected function sendEmailConfirmationTo($user)
+    // {
+    //     $view = 'emails.confirm';
+    //     $data = compact('user');
+    //     $from = 'summer@example.com';
+    //     $name = 'Summer';
+    //     $to = $user->email;
+    //     $subject = "感谢注册 Weibo 应用！请确认你的邮箱。";
+
+    //     Mail::send($view, $data, function ($message) use ($from, $name, $to, $subject) {
+    //         $message->from($from, $name)->to($to)->subject($subject);
+    //     });
+    // }
+
+    protected function sendEmailConfirmationTo($user)
+    {
+        $view = 'emails.confirm';
+        $data = compact('user');
+        $to = $user->email;
+        $subject = "感谢注册 Weibo 应用！请确认你的邮箱。";
+
+        Mail::send($view, $data, function ($message) use ($to, $subject) {
+            $message->to($to)->subject($subject);
+        });
+    }
+
     public function edit(User $user)
     {
         $this->authorize('update', $user);
+
         return view('users.edit', compact('user'));
     }
 
     public function update(User $user, Request $request)
     {
         $this->authorize('update', $user);
+
         $this->validate($request, [
             'name' => 'required|max:50',
             'password' => 'nullable|confirmed|min:6'
@@ -89,24 +111,10 @@ class UsersController extends Controller
         return redirect()->route('users.show', $user);
     }
 
-    public function destroy(User $user)
+    public function index()
     {
-        $this->authorize('destroy', $user);
-        $user->delete();
-        session()->flash('success', '成功删除用户！');
-        return back();
-    }
-
-    protected function sendEmailConfirmationTo($user)
-    {
-        $view = 'emails.confirm';
-        $data = compact('user');
-        $to = $user->email;
-        $subject = "感谢注册 Weibo 应用！请确认你的邮箱。";
-
-        Mail::send($view, $data, function ($message) use ($to, $subject) {
-            $message->to($to)->subject($subject);
-        });
+        $users = User::paginate(6);
+        return view('users.index', compact('users'));
     }
 
     public function confirmEmail($token)
@@ -122,17 +130,12 @@ class UsersController extends Controller
         return redirect()->route('users.show', [$user]);
     }
 
-    public function followings(User $user)
+    public function destroy(User $user)
     {
-        $users = $user->followings()->paginate(30);
-        $title = $user->name . '关注的人';
-        return view('users.show_follow', compact('users', 'title'));
+        $this->authorize('destroy', $user);
+        $user->delete();
+        session()->flash('success', '成功删除用户！');
+        return back();
     }
 
-    public function followers(User $user)
-    {
-        $users = $user->followers()->paginate(30);
-        $title = $user->name . '的粉丝';
-        return view('users.show_follow', compact('users', 'title'));
-    }
 }
